@@ -1,0 +1,229 @@
+---
+title: "101A_hw2_anna_piskun"
+author: "Anna Piskun"
+date: "1/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+### Part 1: 
+1) Use the armspan.csv data collected from this class.
+You will probably need to clean the data before answering these questions. You should justify your choices and decisions for cleaning.
+
+```{r #clean data}
+
+library(readr)
+armspan <- read_csv("armspan.csv")
+#View(armspan)
+
+# clean up data by taking really low values (such as 5.4) which were most likely recorded in feet and converting them to inches to standardize all values and remove unnecessary outliers. 
+armspan[[2,1]] <- 64
+armspan[[2,2]] <- 62
+armspan[[8,1]] <- 69
+armspan[[8,2]] <- 72
+armspan[[49,1]] <- 60
+# clean up data by taking really high values (such as 150) which was most likely written in centimeters and replacing them with their proper value in inches.
+armspan[[6,1]] <- 59
+armspan[[6,2]] <- 55
+
+df <- data.frame(armspan)
+df
+# remove row 15 which contains 38 as an armspan outlier for a person who is 72 inches tall.
+df_clean <- df[c(-15),]
+df_clean
+```
+
+a) Make a plot showing the relationship between armspan and height. Your plot should have armspan on the y-axis. Interpret the plot by describing the trend, strength, and unusual features, if any.
+
+```{r}
+x <- df_clean$height
+y <- df_clean$armspan
+
+cor(x,y)
+
+plot(x,y, main = "Armspan vs. Height",
+     xlab = "Height", ylab = "Armspan",
+     xlim = c(59,73), ylim = c(55, 79))
+
+```
+
+### Armspan and height have a correlation coefficient of 0.79 which indicates a strong, positive, linear relationship. Most of the unusual data points were easily solved by making sure to modify values that were not recorded in inches, removing extreme outliers that most likely resulted from error, thus standardizing the form of measurement across all values.  
+
+b) Fit a linear model for predicting armspan given height. Report the equation of the estimated line. Superimpose the model on the plot you made in part (a).
+```{r}
+# linear model for armspan as a function of height
+armspan_lm <- lm(armspan ~ height, data = df_clean)
+print(armspan_lm)
+
+# we get the equation of the estimated line armspan = -11.222 + 1.163 * height or y = -11.222 + 1.163x
+
+#superimpose the model on our earlier plot
+plot(x,y, main = "Armspan vs. Height",
+     xlab = "Height", ylab = "Armspan",
+     xlim = c(59,73), ylim = c(55, 79), 
+     abline(-11.222,1.163))
+
+
+```
+
+c) Based on the linear model, what is the predicted armspan for your height? What is the residual?
+
+### Based on the linear model, the predicted armspan for my height of 63 inches is approximately 62.05 inches. The residual which equals Predicted - Observed for my height is 62 - 62.05 = -0.05.
+
+d) Michael Phelps' success as a swimmer has been attributed to his unusually long armspan, relative to his height. His armspan is three inches greater than his height. (He is 76 inches tall.) Based on these data, does this seem unusual to you? Why or why not?
+```{r}
+predicted_phelps <- -11.222 + 1.163*76
+z_score <- ((79 - predicted_phelps)/sd(df_clean$armspan))
+z_score
+```
+
+### Calculating the z-score of Michael Phelps' predicted armspan to his actual armspan, we get a value of 0.41 which indicates a small deviation from our predicted model. Thus, based of this data Phelps' armspan is not unusual, he is simply a good swimmer. 
+
+e) Make a residual plot and explain what it tells us about the linear model.
+```{r}
+armspan_resid <- resid(armspan_lm)
+
+plot(df_clean$height, armspan_resid,
+     xlab = "Height", ylab = "Residuals",
+     main = "Residuals vs. Height", 
+     abline(0,0))
+```
+
+### Since there is no clear pattern or trend in the residual, we can see that the linear model does in fact fit the data and serves as a valid model. 
+
+### Part 2:
+
+The command lm(y~x) fits this model: y = a + b x. In this exercise, you're going to explore what happens when you fit this model and yet the data do not follow.
+
+a) In the last homework you wrote a function that generates data that follow the linear model. Write a new function that generates data that has a quadratic trend between x and y: a + bx + cx^2. Input to this function should be a,b,c, sigma, x=rep(1:10,by=.1,4), random.seed. Output is a vector of length(x). The model is y = f(x) + epsilon where epsilon is N(0,sigma), and f(x) is any non-linear function you choose. Produce a scatterplot showing the relationship between y and x for any values of the input parameters you choose.
+```{r}
+quadratic <- function(a, b, c, sigma, x=rep(1:10, by = .1,4), random.seed) {
+        set.seed(random.seed)
+        a + b*x + c*x^2 + rnorm(length(x), 0, sd = sigma)
+}
+x <-rep(1:10, by = .1, 4)
+y <- quadratic(a = 10, b = 1, c = 10, sigma = 5, x = rep(1:10, by = .1, 4), random.seed = set.seed(123))
+
+plot(y ~ x)
+```
+
+b) Now fit a linear model using lm() function applied to the x variable and your generated y variable. This model is not correct (because it assumes the trend is linear but the data you have generated do not follow a linear trend.) Make a plot of the residuals against the x variable. Describe what you see. 
+```{r}
+quadratic_lm <- lm(y ~ x)
+quadratic_lm
+
+quadratic_resid <- resid(quadratic_lm)
+
+plot(x, quadratic_resid,
+     xlab = "X", ylab = "Y", 
+     abline(0,0))
+```
+
+### Since there is a clear pattern in the residual plot (approximately an upward facing parabolic shape), we see that a linear model is not a good fit for the quadratic function. 
+
+c) In class we discussed that if the residual plot shows no features, then this indicates that the correct model was fitted. How can we use the residual plot to tell if the trend is non-linear?
+
+### Patterns and trends in the residuals suggest that there may be non-linear trends in the data and tell us that potentially another model should be used because a linear model is not a good fit. 
+
+d) Now write a function that generates data that follows a linear trend but has non-constant standard deviation in the error terms. Specifically:
+y = a + bx + epsilon where epsilon is N(0, sigma*x^2) for a scalar sigma.
+Input: a, b, x, sigma, random.seed
+Make a scatterplot of y versus x and describe it.
+
+```{r}
+linear <- function(a, b, c, sigma, x=rep(1:10, by = .1,4), random.seed) {
+        set.seed(random.seed)
+        a + b*x + rnorm(length(x), 0, sd = sigma * x^2)
+}
+
+y <- linear(a = 1, b = 200, c = 3, sigma = 5, x=rep(1:10, by = .1,4), random.seed = set.seed(123))
+x <- rep(1:10, by = .1,4)
+
+plot(y ~ x)
+```
+
+### There is a strong, positive, linear relationship between x and y with a correlation coefficient of 0.94.
+
+e) Now use lm() to fit the model, using the y values you generated in (d). Note that the model you fit will be incorrect, because it assumes that the standard deviation of the error terms is a constant and yet the data you generated varies the standard deviation based on the value of x. Created a residual plot. What about the residual plot indicates that the "constant standard deviation" assumption was violated?
+
+```{r}
+linear_trend_lm <- lm(y~x)
+linear_trend_resid <- resid(linear_trend_lm)
+
+plot(x, linear_trend_resid,
+     xlab = "X", ylab = "Y", 
+     abline(0,0))
+
+```
+
+### Looking at the residual plot we see that as x gets larger, so does the variance (more points are further away from the line at 0). Thus, we see that the constant standard deviation assumption was violated. 
+
+### Part 3
+
+3) Import the ATUS data (american time use survey). (Note that these data are under Site Info on CCLE. In addition to the data themselves, there is a file describing the variables.) Is the amount of time spent on homework associated with the amount of time spent sleeping? To answer this, first modify the dataset so that we exclude people who did no homework:
+
+```{r}
+library(readr)
+atus <- read_csv("atus.csv")
+#View(atus)
+
+atus1 <- subset(atus,homework>0)
+```
+
+a) Make a scatterplot (with time spend on homework on the vertical axis) and fit a linear model and use these to describe the association (if any) between homework and sleep times.
+```{r}
+x <- atus1$sleep
+y <- atus1$homework
+
+# cor(x,y) = -0.126
+atus1_lm <- lm(homework ~ sleep, data = atus1)
+
+plot(x,y, main = "Time Spent on Homework vs. Amount of Sleep",
+     xlab = "Minutes of Sleep", ylab = "Minutes Spent on Homework",
+     xlim = c(105,1120), ylim = c(3, 930),
+     abline(249.7618, -0.1312))
+
+```
+
+b) Make a residual plot (residuals against time spent sleeping). What do you learn?
+```{r}
+atus1_resid <- resid(atus1_lm)
+
+plot(atus1$sleep, atus1_resid,
+     xlab = "Minutes of Sleep", ylab = "Residuals",
+     main = "Residuals vs. Minutes of Sleep", 
+     abline(0,0))
+```
+
+### Since there is a clear pattern in the residuals (seen by the clump of points in between 400 and 600), this indicates that there may be a nonlinear trend and that the linear regression is not a good model for this data.
+
+#### Part 4: 
+
+a) Using the ATUS data, carry out a hypothesis test to determine whether those who identified as female spent, on average, more time doing household chores than did those who identified as male. State hypotheses, the test statistic you use, the observed value of the statistic, the p-value, and your conclusion using a 5% significance level.
+
+HO:μf - μm = 0
+
+HA:μf - μm > 0
+
+```{r}
+
+atus_female <- subset(atus, atus$gender == "Female")
+atus_male <- subset(atus, atus$gender == "Male")
+
+atus_female_mean <- atus_female$household_chores
+atus_male_mean <- atus_male$household_chores
+
+t.test(x = atus_female_mean, y = atus_male_mean, alternative = "greater")
+```
+
+### From the one sided t test (our test statistic), we see that t=20.381 and the p-value = 2.2e-16. Since our p-value is less than our significance level (alpha = 0.05), we reject the null hypothesis. Thus we find that on average females spend more time doing household chores than that of males. 
+
+b) What conditions must hold in order for your p-value to be accurate? What reasons do you have to believe that these conditions are or are not met in this situation?
+
+### In order for the p-value to be accurate, the sample size n must be sufficiently large so that the means will be normally distributed, and all the observations must be independently sampled as per the central limit theorem.  
+
+

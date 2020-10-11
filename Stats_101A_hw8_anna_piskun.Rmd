@@ -1,0 +1,141 @@
+---
+title: "Stats_101A_hw8_anna_piskun"
+author: "Anna Piskun"
+date: "2/25/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+###Part A: 
+
+Load the dietstudy data into R (from "data used in class" folder). Create a new subset of data that includes only these variables: DIET, AGE, SEX, WEIGHT_0, DROPOUT2, WEIGHT_2, ADHER_2).
+
+```{r}
+setwd("~/Desktop")
+dietstudy <- read.csv("dietstudy.csv")
+new.dietstudy <- dplyr::select(dietstudy, DIET, AGE, SEX, WEIGHT_0, DROPOUT2, WEIGHT_2, ADHER_2)
+```
+
+To this dataframe add a new variable that represents the change in weight after two months:
+wtchange=WEIGHT_2-WEIGHT_0
+```{r}
+new.df <- dplyr::mutate(new.dietstudy, wtchange = WEIGHT_2-WEIGHT_0)
+```
+
+The data come from a randomized study to determine which data was best for losing weight at 2, 6 and 12 months. We'll examine only 2 month weight change. WEIGHT_0 is baseline weight, and WEIGHT_2 is weight after two months. DROPOUT2 is an indicator variable that indicates whether the subject dropped out of the study. ADHER_2 measures how well the subject adhered to the diet, with higher scores indicating higher adherence (self-reported). 
+
+a) Make a graphic to compare weight changes across diets. Based on this plot, which diet, if any, would you conclude was most effective?
+
+```{r}
+library(ggplot2)
+ggplot(new.df, aes(x=wtchange, color=DIET)) +
+  geom_histogram(fill= "white", position="dodge", alpha=1, bins = 30) +
+  facet_grid(DIET ~ .) + ggtitle("Weight Changes Across Diets") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
+```
+Looking at the distribution of the four diets, no one diet stands out as being significantly more effective than the other. They all have similar ranges and sizes, and all four diets display a relatively equal proportion of negative values. 
+
+b) Note that some weight change values are exactly equal to 0? Why is this? Explain why, and then drop the 0 values from all subsequent analyses.
+
+```{r}
+new.df$DROPOUT2[new.df$wtchange == 0]
+new.df$ADHER_2[new.df$wtchange == 0]
+```
+
+Weight change values equal to 0 represents the subjects that experienced no weight loss on the specific diet they were assigned. For the wtchange values that equalled 0, they also all dropped out of the study (we see this by looking at the DROUPOUT2 variable) and generally had very low adherance levels (>3). By removing the zeros we remove individuals who did not adhere to the diet and then later dropped out. This will lead to a more representative and accurate model. 
+
+```{r}
+clean.df <- dplyr::filter(new.df, wtchange != 0)
+```
+
+c) Create a linear model that includes as predictors age, diet, sex, baseline weight and adherence. What does this model say about the effectiveness of the diets? Based on this model, what should a physician tell her patients about losing weight? (Don't worry, for now, about assessing model validity.)
+
+```{r}
+model <- lm(wtchange~AGE+SEX+WEIGHT_0+ADHER_2+DIET, data = clean.df)
+anova(model)
+summary(model)
+```
+
+Looking at the anova table of our model, the high p-value for the variable indicates that no matter which type is used, diet is not statistically significant nor useful for our model in predicting weight change given that we have already accounted for age, sex, initial weight, and adherence level. Given age, sex, and starting weight, adherence to diet is the only statistically significant variable. Therefore the physician can tell her patients that with regards to losing weight there is no evidence that one diet is better than the other, but what is most important is that they choose a diet and stick to it.
+
+d) Interpret the "DIETOrnish" slope.
+
+Since DIETOrnish is not statistically significant when compared to DIETAtkins due to the p-value being greater than 0.05, there is no statistically significant difference in weight change between the two diets.  
+
+e) It appears that those who adhere to the diet tend to lose more weight. However, some diets might be easier to adhere to than others. Add an interaction effect to test whether the effect of adherence is the same for the diets.
+
+```{r}
+model1 <- update(model, . ~ . + ADHER_2:DIET)
+summary(model1)
+```
+
+Since there is no statistically significant coefficients on the interactions, there is no statistical significance that adherence is different among the four diets. 
+
+###Part B:
+
+To answer these questions, use the NCbirths data file in the folder under Site Info. We'll return to these data in HW 9.
+
+```{r}
+births <- read.csv("NCbirths.csv", row.names = 1)
+```
+
+
+a) Fit a model using all of the available predictors to predict the weight of the baby (pounds). A description of the variables is below. Are the conditions of model validity satisfied? Explain which are and which aren't, and provide appropriate graphical support.
+
+```{r}
+model2 <- lm(pounds~., data = births)
+plot(model2)
+```
+
+Looking at the standardized residual plot there is no clear trend or pattern therefore the linearity condition is satisfied. Likewise, there is no fan-shape pattern in the residuals so the constant variance condition is also satisfied. The normal QQ plot has very little to no deviation from the straight line, therefore the errors are normally distributed. Since there is no increasing or decreasing trend in the scale-location plot, this again confirms that the constant variance condition is satisfied.
+
+b) Create marginal model plots for each predictor. Which predictors are not fit well by the model?
+
+```{r, warning=FALSE}
+library(alr3)
+mmps(model2)
+```
+
+While all of the predictors are fit relatively well by the model (the regression line and loess line are about the same), the $meduc$, $gained$, and $visits$ variables can be improved upon as their loess line has slightly more deviation from the regression line. 
+
+c) Use both an inverse response plot and a box-cox approach to consider a transform for the response variable. What do they recommend? (Hint: apply summary to the powerTransform() function.)
+
+```{r}
+invResPlot(model2)
+summary(powerTransform(model2))
+```
+
+The inverse response plot suggests raising the response variable weight to the power of -0.2892921, but since the RSS is nearly the same for this transform as the RSS for the original model, and the lines are almost the same, it is best to stick with the original, more simplified model. Looking at the boxcox method, since there is a small p-value (<0.05) for lambda = 0, we reject the null hypothesis that we should do a log transform. Looking at the pvalue for lambda = 1 it is greater than 0.05, therefore we fail to reject the null hypothesis and the untransformed model is best. Thus, the BoxCox method does not recommend a model transform. 
+
+null = untransformed good 
+alternative = transformed good
+
+d) Use the Box-Cox approach to consider transforms for the predictor variables. Do NOT include any categorical variables. Which variables are suggested for transformations and what are these transformations?
+
+```{r}
+summary(powerTransform(cbind(births$fage, births$mage, births$meduc, births$weeks, births$visits + 0.1, births$cignum + 0.1, births$gained + 0.1)~1)) 
+```
+
+All of the variables ($fage$, $mage$, $meduc$, $weeks$, $visits$, $cignum$, $gained$) are suggested for transformations. The transforms are as follows: raise $fage$ to the -1.00, log transform of $mage$, square $meduc$, raise $weeks$ to the 7.50, log transform of $visits$, raise $cignum$ to the -1.71, and lastly raise $gained$ to the 0.5. 
+
+e) In question d, you were told to remove categorical predictors when seeking the box-cox transformation. Why is this?
+
+We need to remove categorical predictors because they only consist of values equalling either 0 or 1 so in this case they serve as dummy variables that will never have a transformation that will turn them into normal distributions. 
+
+f) Create a new dataframe with the transformed variables as well as sex, smokes, and cignum. Fit a model using all of these predictors. Compare the validity of this model to the original untransformed model. Which do you think is best?
+
+```{r}
+new.births <- dplyr::transmute(births, new_fage = fage^(-1), new_mage = log(mage), new_meduc = meduc^2, new_weeks = weeks^7.50, new_visits = log(visits), new_cignum = (cignum + 0.1) ^ (-1.71) , new_gained = gained^0.5, new_sex = sex, new_smokes = smoke, new_pounds = pounds)
+
+new.model <- lm(new_pounds~., data = new.births)
+plot(new.model)
+summary(new.model)
+summary(model2)
+mmps(new.model)
+```
+Looking at the residual plot for the new model there is no pattern so the linearity condition is satisfied. The normall QQ plot has little to no deviation from the straight line so the errors are normally distributed. There is no increasing or decreasing trend in the scale-location plot, or fanshape in the residual plot thus confirming that the constant variance condition is satisfied. Therefore both models are valid, and looking more closely at their individual summaries both models had almost the same RSS and R-squared values (with adjusted R-squared decreasing in the transformed model). Looking at the marginal model plots, all the variables are fit by the model pretty well with the loess lines being almost the same as the regression lines, except with this model now the $weeks$, $gained$, and $visits$ have slightly more deviation. Thus, since there was no significant improvement in the transformed model it is better to keep the simpler, untransformed model. Therefore, in this case, the original model is best. 
+

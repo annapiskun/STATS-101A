@@ -1,0 +1,158 @@
+---
+title: "Stats_101A_hw3_anna_piskun"
+author: "Anna Piskun"
+date: "1/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 1:
+
+Part a)
+```{r}
+library(readr)
+playbill <- read_csv("playbill.csv")
+y <- playbill$CurrentWeek
+x <- playbill$LastWeek
+beta1_lm <- lm(y ~ x)
+
+plot(y ~ x)
+abline(beta1_lm)
+
+summary(beta1_lm)
+
+beta1_CI <- confint(beta1_lm, 'x', level = 0.95)
+beta1_CI
+```
+The 95% confidence interval for beta 1 is (0.951,1.012), therefore 1 is a plausible value for beta 1 (since it is within the calculated confidence interval). 
+
+Part b)
+
+H0:b0=10000
+
+HA:b0≠10000
+
+```{r}
+t = (6804-10000)/9929
+t
+
+2 * pt(abs(t), df = 16, lower.tail = F)
+```
+Assuming a significance level of 0.05, since our p-value (0.752) is greater than alpha we fail to reject the null hypothesis.
+
+Part c)
+Using our linear model we find the following fitted regression model: y = 0.9821x + 6804. Plugging in 400000 into the model we get an estimate for the current box office results of $399,644. 
+```{r}
+predict(beta1_lm, data.frame(x = 400000), interval = "prediction", level = 0.95)
+```
+Using our prediction interval above, we see that $450,000 is not a feasible value for the current week's box office results because it is outside of our 95% interval (upper bound = 439332.2). 
+
+Part d)  Some promoters of Broadway plays use the prediction rule that next week’s gross box office results will be equal to this week’s gross box office results. Comment on the appropriateness of this rule.
+
+Run a hypothesis test: 
+
+H0 : B1 = 1
+
+HA : B1 ≠ 1
+
+```{r}
+t_1 = (0.9821 - 1)/0.01443
+t_1
+
+2 * pt(abs(t_1), df = 16, lower.tail = F)
+```
+Since our pvalue (0.233) is greater than our significance level of 0.05, therefore we fail to reject the null hypothesis meaning there may be a perfect correlation between this weeks and next weeks box office results and this prediction model is valid. 
+
+### Question 2: 
+
+Part a) Find a 95% confidence interval for the slope of the regression model, b1. On the basis of this confidence interval decide whether there is evidence of a significant negative linear association.
+
+```{r}
+indicators <- read.table("indicators.txt", header = TRUE)
+
+Y <- indicators$PriceChange
+X <- indicators$LoanPaymentsOverdue
+
+indicators_lm <- lm(Y~X)
+indicators_lm
+
+plot(Y~X)
+abline(indicators_lm)
+
+summary(indicators_lm)
+
+confint(indicators_lm, 'X', level = 0.95)
+```
+Since both the upper and lower bounds are negative numbers, our confidence interval shows that we are 95% confident that the true slope is within our interval meaning it would be a negative slope, thus indicating a significant negative linear association.
+
+Part b) Use the fitted regression model to estimate E(Y | X=4). Find a 95% confidence interval for E(Y | X=4). Is 0% a feasible value for E(Y | X=4)? Give a reason to support your answer.
+
+Using our linear model we get the following equation: Y = -2.249X + 4.514. Using the model we find that E(Y|X=4) = -2.249(4) + 4.514 = -4.482
+
+```{r}
+predict(indicators_lm, data.frame(X = 4), interval = "confidence", level = 0.95)
+```
+
+Looking at our 95% confidence interval, both the lower and upper bounds are still negative values indicating that 0% is not a feasible value for E(Y|X=4) (since it is not within the bounds of our interval). 
+
+### Question 5:
+
+Given the two alternative straight line regression models, the RSS for model 1 is less than RSS for model 2, while SSreg for model 1 is greater than SSreg for model 2 (d is correct). By definition, RSS is the sum of the squares of residuals (deviations between the predicted values and actual values) meaning that a small RSS would indicate a tight fit of the model to our data and a large RSS would indicate not good fit of the model. Looking at the plots of both model, we see that the data in model 1 is much more closely packed than that of model 2 telling us that the RSS is lower in model one than model 2. SSreg is the amount of variance that can be explained by the regression model, and the better a model fits the bigger the SSreg value gets. Looking at our two models again, since the data was more closely packed around the regression line in Model 1 that means that more data was explained by our model. Therefore, the straight line regression for model 1 was a better fit than that for model 2, and would result in a larger SSreg value. 
+
+### Question 7: 
+
+By definition, a confidence interval tells us that we are 95% confident that the true population parameter is within our interval, therefore it is still feasible that 95% of the data taken can fall outside of the confidence interval. A prediction interval, however, tells us that we are 95% confident that our individual observed value is within the interval. In general, individuals have more variability than that of means of groups which is why the prediction interval is wider (to reflect the additional uncertainty of predicting for an individual). Thus, it is more likely that 95% of the observations will fall out of the 95% CI. 
+
+### Part C
+
+Below is output from a model from a new set of data that was used to predict people's armspans from their height. Use the output from the model to calculate the following components of the ANOVA table:
+
+a) RSS
+```{r}
+RSS = (2.418)^2 * 33
+RSS
+```
+b) SSreg
+```{r}
+SSreg = 87.17*(192.9419/33)
+SSreg
+```
+
+c) Mean SSreg
+```{r}
+mean_ssreg = SSreg/1
+mean_ssreg
+```
+
+d) Total SS
+```{r}
+SS = SSreg + RSS
+SS
+```
+
+e) It's not part of the ANOVA table, but also find the correlation coefficient, r.
+```{r}
+r = sqrt(1 - (RSS/SS))
+r
+```
+
+****R Output*****
+>summary(m1)
+Call:
+
+lm(formula = armspan ~ height, data = armspan.sample)
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.3178 -1.1033  0.7212  1.5847  4.0721 
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  -3.3727     7.4147  -0.455    0.652    
+height        1.0390     0.1113   9.337 8.78e-11 ***
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Residual standard error: 2.418 on 33 degrees of freedom
+Multiple R-squared:  0.7254,Adjusted R-squared:  0.7171 
+F-statistic: 87.17 on 1 and 33 DF,  p-value: 8.777e-11
+****END R Output*****

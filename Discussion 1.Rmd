@@ -1,0 +1,80 @@
+---
+title: "Discussion 1"
+author: "Anna Piskun"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Questions 1-3
+```{r}
+mydata= read.csv('salary_survey.csv')
+View(mydata)
+
+experience <- mydata$total_experience_years
+hist(experience)
+plot(experience)
+base_pay <- mydata$annual_base_pay
+hist(base_pay)
+plot(base_pay)
+
+mydata1=subset(mydata, location_country == "US")
+subset(mydata1,annual_base_pay>300000)
+subset(mydata1,annual_base_pay<1000)
+
+mydata2 = mydata1
+mydata2$annual_base_pay[mydata2$annual_base_pay<1000]=
+  mydata2$annual_base_pay[mydata2$annual_base_pay<1000]*1000
+View(mydata2)
+#check to see if we subsetted correctly
+cleandata <- subset(mydata2, annual_base_pay<1000)
+```
+
+###Week 3 Discussion Questions
+```{r}
+#1) compute SXY and SXX directly using the data 
+
+SXY = sum((cleandata$total_experience_years -
+             mean(cleandata$total_experience_years)) *
+            (cleandata$annual_base_pay -
+               mean(cleandata$annual_base_pay)))
+#computing the covariance between x and y 
+
+SXX = sum((cleandata$total_experience_years-
+             mean(cleandata$total_experience_years))^2)
+
+beta1 = SXY/SXX
+beta1
+
+#2) calculate total variability 
+
+SST = sum((cleandata$annual_base_pay-mean(cleandata$annual_base_pay))^2)
+SSREG= sum((model$fitted.values-mean(cleandata$annual_base_pay))^2)
+RSS = sum((cleandata$annual_base_pay-model$fitted.value)^2)
+SST - SSREG -RSS
+n=dim(cleandata)[1]
+est_se=sqrt(RSS/(n-2))
+summary(model)
+
+#3) 
+beta1_hat=SXY/SXX
+df=dim(cleandata)[1]-2
+res_se=sqrt(sum(model$residuals^2)/df)
+tvalue=beta1_hat/(res_se/sqrt(SXX))
+pvalue=2*(1-pt(tvalue,df=df))
+summary(mode1)
+
+tvalue=4.25
+pvalue=3.515-05
+
+#4) 
+
+CI = predict(model, 
+             newdata=data.frame('total_experience_years'=5),
+             interval='confidence')
+PI=predict(model, 
+           newdata=data.frame('total_experience_years'=5),
+           interval='prediction')
+```
+

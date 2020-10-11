@@ -1,0 +1,135 @@
+---
+title: "Stats_101A_hw_4_anna_piskun"
+author: "Anna Piskun"
+date: "1/31/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Part A: Chapter 3 Question 1
+
+a) Looking at the plot of Model 1, we can say that there exists a strong, positive, linear relationship. However, looking at the residual plot there is a clear pattern (inverted parabola) that suggests a better fit with a nonlinear model. Therefore there is a better model that can be used to predict fare given the distance.
+
+b) Given the output from R we get that the ordinary regression model follows the following formula: fare = 48.9718 + 0.2197 (distance) with r squared = 0.994 which correlates to 99.4% of the variation in fare being explained by the model. A high rsquared value  indicates a good model since it shows that almost all of the variation can be explained by our model. Likewise, since both pvalues of the intercept and slope are less than 0.05, the regression model is signficant and fits the data well. 
+
+### Part B: Chapter 3 Question 3
+
+```{r}
+setwd("~/Desktop")
+adrevenue <- read.csv("AdRevenue.csv")
+plot(adrevenue$AdRevenue~adrevenue$Circulation)
+```
+
+Part A: 
+
+a) Develop a simple linear regression model based on least squares that predicts advertising revenue per page from circulation (i.e., feel free to transform either the predictor or the response variable or both variables). Ensure that you provide justification for your choice of model.
+
+```{r}
+adrevenue_log <- transform(adrevenue, AdRevenue = log(AdRevenue), Circulation = log(Circulation))
+model1 <- lm(AdRevenue~Circulation, data = adrevenue_log)
+plot(AdRevenue~Circulation, data = adrevenue_log)
+abline(model1)
+plot(model1)
+```
+
+For AdRevenue, values range from 1000’s to 100,000’s (two orders of magnitude increase), so using a logarithmic transformation will allow us to fit the data better. Looking at the ordinary regression plot, the data seems to fit the model well with a strong, positive, linear relationship and there is no clear pattern in the residual plot indicating that our linear model (with a log transformation) is a good fit. 
+
+(b) Find a 95% prediction interval for the advertising revenue per page for magazines with the following circulations: i) 0.5 million ii) 20 million
+
+```{r}
+exp(predict(model1, data.frame("Circulation" = log(.5)), interval = "prediction"))
+exp(predict(model1, data.frame("Circulation" = log(20)), interval = "prediction"))
+```
+(c) Describe any weaknesses in your model.
+```{r}
+plot(model1)
+```
+
+Looking at the normal Q-Q plot we see that it is not completely straight, which may potentially indicate non-normality, and thus illustrate a weakness in our model. Other than that, the residual plot shows no clear pattern, there is no trend in the scale-location plot (indicating constant variance), and there are no points with substantially high leverage. 
+
+Part B: 
+
+(a) Develop a polynomial regression model based on least squares that directly predicts the effect on advertising revenue per page of an increase in circula- tion of 1 million people (i.e., do not transform either the predictor nor the response variable). Ensure that you provide detailed justification for your choice of model. [Hint: Consider polynomial models of order up to 3.]
+
+```{r}
+plot(AdRevenue~Circulation, data = adrevenue)
+model2 <- lm(AdRevenue~poly(Circulation,2,raw=T),data=adrevenue)
+xs <- seq(0,40,length=1000)
+ys <- predict(model2, data.frame(Circulation=xs))
+lines(xs, ys)
+
+model3 <- lm(AdRevenue~poly(Circulation,3),data=adrevenue)
+x <- seq(0,40,length=1000)
+y <- predict(model3, data.frame(Circulation=x))
+lines(x, y)
+
+plot(model2)
+plot(model3)
+
+```
+(b) Find a 95% prediction interval for the advertising page cost for magazines with the following circulations: (i) 0.5 million (ii) 20 million
+
+```{r}
+predict(model2, data.frame("Circulation" = 0.5), interval = "prediction")
+predict(model2, data.frame("Circulation" = 20), interval = "prediction")
+```
+(c) Describe any weaknesses in your model.
+
+Looking at the quadratic model first, its residual plot shows no clear trend but there is a cluster with a few outliers. The QQ plot does not follow a straight line (in fact it almost looks like it follows a cubic trend), showing potential non-normality of our data. The scale-location plot shows no upward trend, allowing the constant variation condition to still hold. The leverage plot shows two points with high leverage (4 and 49) with both having bad leverage since neither follow the linear trend of the data. Looking at the diagnostic plots for the cubic model next, the resdual plot shows a fanshape indicating nonconstant variance. Again, the QQ plot does not follow a straight line indicating non-normality and the scale-location plot shows a definite upward trend confirming the failure of the constant variance condition. There are three high leverage points for this model, with all being bad leverage points because none follow the linear trend of the data.  
+
+Part C: 
+(a) Compare the model in Part A with that in Part B. Decide which provides a better model. Give reasons to justify your choice.
+
+The logarithmic model in Part A is better than both the quadratic and cubic models in part B. The only weakness of the model in part A was that the QQ plot was not completely straight, however, it was straighter than both models provided in part B. Additionally, the quadratic and cubic models had issues with nonconstant variance, errors in normality, and bad, high leverage points. Intuitively it makes sense that the log model would serve as a better representation of our data given that the data itself ranges over two orders of magnitude indicating that a log tranformation would allow a model to better fit the data.   
+
+(b) Compare the prediction intervals in Part A with those in Part B. In each case, decide which interval you would recommend. Give reasons to justify each choice.
+
+I would recommend choosing the log prediction interval, since the log model is the better model for our data. If a model is invalid, then its resulting prediction intervals would also be invalid, thus showing how the prediction intervals in Part B would be less accurate than those in Part A. 
+
+### Part C
+
+Load the housescrapeWW1.txt data into a dataframe. This includes characteristics of houses/condos in Westwood from three years ago. Create a new data frame that includes only listings for which sqft>0.
+
+```{r}
+ww1 <- read.table("housescrapeWW1.txt", header = T, sep = "\t", fill = FALSE)
+ww1_clean <- subset(ww1, sqft > 0)
+ww1_clean
+```
+
+a) Fit the model price= b_0 + b_1 size(size is measured in square-feet and is the variable sqft). Report the model and iterpret the intercept and slope.
+
+```{r}
+ww1_clean_lm <- lm(ww1_clean$price~ww1_clean$sqft)
+ww1_clean_lm
+plot(ww1_clean_lm)
+# this gives us the following model: price = 55902.6 + 414.2size with the starting price for a house being a minimum of $55,902.60 (the intercept) and each added square foot costing $414.20 (slope). 
+```
+
+b) Fit the model log(price)=b_0+b_1 log(size). Report the model and Interpret the slope. 
+```{r}
+log_p <- log(ww1_clean$price)
+log_s <- log(ww1_clean$sqft)
+
+ww1_clean_log <- lm(log_p~log_s)
+ww1_clean_log
+plot(ww1_clean_log)
+
+# this gives us the following model: price = 7.2086 + 0.8486size where the slope tells us that a one percent increase in square foot is associated with a 0.8486 percentage point increase in price. 
+```
+c) Fit the model log(price)=b_0+b_1 *size. Report the model
+
+```{r}
+ww1_clean_both <- lm(log_p~ww1_clean$sqft)
+plot(ww1_clean_both)
+ww1_clean_both
+# gives the following model : price = 12.53 + 0.00056size 
+```
+
+d) Which model fits better, in terms of model validity? Comment on all ways in which the better model is better, and the ways in which it is not better (and maybe even worse.)
+
+The model in part B (log/log) fits better. Looking at the residual plots for all three models first, the models in part A and C resemble a fanshape indicating nonconstant variance. This is confirmed by their scale location plots which for the model in part A shows an upward trend and a downward trend for the model in part B. The model in part A has a bad, high leverage point while the leverage plot for part B shows the presence of a potential influential point. While all three models dont have a QQ plot that follows a very straight line, the model in B is better due to it satisfying the constant variance condition and having no high leverage points (as well as more varied points in the residuals vs. leverage plot). 
+
+

@@ -1,0 +1,188 @@
+---
+title: "Stats_101A_hw7_anna_piskun"
+author: "Anna Piskun"
+date: "2/20/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=100),tidy=TRUE)
+```
+
+### Part A:
+
+Load the waistweightheight dataframe into R. The objective of this exercise is to understand why we need hypothesis tests to help us decide whether to add new variables and why we need adjusted R-squared.
+
+```{r}
+wwh <- read.table("waistweightheight.txt", header = T, sep = "\t", fill = FALSE)
+```
+
+
+a) First, fit a model that predicts Weight using waist size and height.
+    i) Find and report SYY, SSReg, and RSS
+    ii) Report R-squared and adjusted R-squared
+    iii) Just for fun, interpret the slope for height.
+    iv) Does interpreting the slope for height using the phrase “as height increases…” make sense? How about if we replace height with waist size?
+    
+```{r}
+model1 <- lm(Weight~Waist + Height, data = wwh)
+summary(model1)
+anova(model1)
+```
+
+SYY = 438176, SSReg = 387917, and RSS = 5025. R-squared = 0.8853, and adjusted R-squared = 0.8848. Interpretation of slope for height: On average, a one inch increase in height is associated with a 2.4884 pound increase in weight. Interpreting the slope for height using the phrase as height increases does not make sense because that would mean that with every inch you grew you would gain 2.4884 pounds which is not necessarily the case. Likewise there can be other confounding variables that affect weight, such as waist size and whenever we interpret the slope with multiple regression we must keep all variables in mind. Both height and waist size can have affects on weight so even replacing height with waist size in the above statement won't be accurate because it won't take into account all of the present variables. 
+    
+b) We’re now going to add a variable to our model that is useless.
+
+i) Find and report SYY, SSReg, and RSS, and SSreg due to the variable worthless
+ii) Comment on how these have changed from (a).
+iii) How has R-squared and adjusted R-squared changed from (a)?
+```{r}
+set.seed(23)
+new.df <- transform(wwh, worthless = rnorm(dim(wwh)[1],0,5))
+#Add this variable to the model as the LAST variable
+model2 <- lm(Weight~Waist + Height + worthless, data = new.df)
+anova(model2)
+summary(model2)
+```
+
+SYY = 438176, SSReg = 388039, RSS = 50137, SSreg due to worthless = 122. SYY remained the same, while SSReg increased and RSS decreased. R-squared = 0.8856 and adjusted R-squared = 0.8849 so both increased slightly with R-squared increasing by 0.0003 and adjusted R-squared increasing by 0.0001. 
+    
+c) Repeat (b) but this time put worthless in the model first. Comment on how the terms have changed from (b).
+```{r}
+model3 <- lm(Weight~worthless + Waist + Height, data = new.df)
+anova(model3)
+summary(model3)
+```
+
+SYY stayed the same (at 438176) as well as overall SSReg (388039) and RSS (50137), however individual SSRegs for the Waist and Height variables both decreased and the SSReg for the worthless variable increased.
+    
+d) Which do you think is a more reliable guide as to whether a new variable should be added, Rsquared or adjusted Rsquared? Why?
+
+Whenever a new variable is added to a model R-squared will go up regardless. Since R-squared will always increase this can lead to potential overfitting (just adding random noise). Adjusted R-squared is a better measure of whether adding a new variable is an improvement since it compares estimated variability in the noise compared to the overall variability. Thus if adjusted R-squared goes down or stays the same, then the new variable wasn't signifcant, but if it goes up then it's probably useful. 
+
+e) Why can’t we just look at SSreg to decide whether to add a new variable (following the rule if SSreg gets bigger, add the new variable)? Why do you think partial tests are useful for telling us whether we should add a new variable?
+
+We can't just look at SSreg to decide whether to add a new variable or not because order matters and the amount of variability that is left to explain depends on how much was explained by variables already entered into the model. Partial tests allow us to see whether or not adding a new variable is useful because it allows us to test whether or not one variable is signifcant assuming that other variables are. This way we can control for each new variable that is added and determine on a case-by-case basis whether or not including it will improve our model.  
+
+### Part B:
+
+Again, let’s work with the cars data set. (cars04). Fit a model to predict Suggested RetailPrice using all of the remaining numerical variables. In other words, exclue Vehicle.Name and Hybrid from your model. (This is the same model you fit for last week's homework.)
+
+```{r}
+cars04 <- read.csv('cars04.csv')
+cars04_clean <- dplyr::select(cars04, SuggestedRetailPrice:Width)
+model1_cars <- lm(SuggestedRetailPrice~., data = cars04_clean)
+summary(model1_cars)
+anova(model1_cars)
+```
+
+a) write the equation of the fitted model
+
+SuggestedRetailPrice = 349.97628 + 1.05418(DealerCost) - 32.24720(EngineSize) + 228.32952(Cylinders) + 2.36212(Horsepower) - 16.74239(CityMPG) + 46.75754(HighwayMPG) + 0.69920(Weight) + 27.05345(WheelBase) - 7.32019(Length) - 84.70850(Width) 
+    
+b) Using the summary command, report the estimated slope, the t-statistic and the p-value for the Cylinders variable. What can we conclude from this t-statistic and p-value? (Assume that all necessary model conditions are valid.)
+
+```{r}
+summary(model1_cars)
+```
+
+For the Cylinders variable, the estimated slope = 228.32952, t-statistic = 3.171, and p-value = 0.001730. Since the p-value is less than 0.05, the variable Cylinders is statistically significant given that DealerCost and EngineSize are already included in the model. In other words, adding the variable Cylinders improves our model and allows us to explain more of the variation. 
+    
+c) Show how to get the t-statistic value for Cylinders using the anova() command.
+```{r}
+model2_cars <- lm(SuggestedRetailPrice~DealerCost + EngineSize + Horsepower + CityMPG + HighwayMPG + Weight + WheelBase + Length + Width + Cylinders, data = cars04)
+anova(model2_cars)
+#square root the F-value for Cylinders from the anova table to find the t-statistic value for Cylinders
+t.stat <- sqrt(1.0058e+01)
+t.stat
+```
+
+d) Report and interpret the F-statistic from the summary() command.
+
+Since the F-statistic is large and the p-value is small (less than 0.05), it’s statistically significant and therefore the full model explains more variation in suggested retail price than the null model. 
+    
+e) Carry out a test to determine whether the full model is better than a model that excludes both CityMPG and HighwayMPG. In otherwords, test the hypothesis that fuel consumption has no affect on the suggested retail price.
+
+```{r}
+null.model <- lm(SuggestedRetailPrice~DealerCost + EngineSize + Cylinders + Horsepower + Weight + WheelBase + Length + Width, data = cars04_clean)
+anova(null.model)
+full.model <- lm(SuggestedRetailPrice~., data = cars04_clean)
+anova(full.model)
+full.model2 <- lm(SuggestedRetailPrice~DealerCost + EngineSize + Cylinders + Horsepower + HighwayMPG + CityMPG + Weight + WheelBase + Length + Width, data = cars04_clean)
+anova(full.model2)
+```
+
+Preforming a partial F-test, we see that when accounting for DealerCost, EngineSize, Cylinders,and Horsepower in our model, CityMPG and HighwayMPG are not statistically significant (p-values greater than 0.05) and therefore fuel consumption may not have a significant effect on the suggested retail price. 
+
+### Part C: 
+
+The file realty.txt combines house prices for four neighborhoods in Los Angeles. (You've seen subsets of this data set already). Upload this file. Transform as needed until you get 1555 observations and 10 variables.
+
+```{r}
+realty <- read.table("realty.txt", header = T, sep = "\t", fill = FALSE)
+table(realty$type)
+new.frame <- subset(realty, type == "Condo/Twh"| type == "SFR")
+new2.frame <- subset(new.frame, sqft>0 & bath>0)
+realty.new <- transform(new2.frame, lprice=log(price))
+```
+
+i) Fit a model that predicts the log of price with city, bed, bath, and sqft. Assuming conditions of the model hold, interpret the intercept. (Be sure to specify data=realty.new in your lm command.) 
+
+```{r}
+model4 <- lm(lprice~city + bed + bath + sqft, data = realty.new)
+summary(model4)
+intercept <- exp(1.327e+01)
+intercept
+anova(model4)
+```
+
+The intercept tells us that the base price of a home in Los Angeles is $579,545.80 (in other words this is the cost for just the land). 
+    
+ii) Interpret cityWestwood. (Hint: what cities are in the dataset?) Which city is most expensive, on average? Which least?
+
+cityWestwood is the variable that looks at prices for homes in Westwood, Los Angeles. Since its p-value is less than 0.05, the variable is statistically significant and should be included in our model. On average, Westwood is the most expensive and Long Beach is the least expensive. 
+
+iii) Are more bedrooms more valuable? Interpret the meaning of the bed variable.
+  
+Since bedrooms have a very large F-value but small p-value the variable is statistically significant and therefore should be included in our model. When already accounting for the city varaible, from looking at the F-values we see that bedrooms are more valuable than bath and sqft. 
+
+iv) The p-value for bath is high. What does this mean?
+
+Since the p-value = 0.114, the bath variable is not statistically significant when taking city and bedrooms into account, and therefore it is not necessary to add to our model to improve its ability to explain variation in the data.  
+    
+v) Fit the model again without the variable "bed". Why is "bath" now significant? (hint: try the update() command.)
+
+```{r}
+model5 <- lm(lprice~city + bath + sqft, data = realty.new)
+summary(model5)
+```
+
+Bath is now significant because we are no longer accounting for bedrooms in our model. Since bedrooms often times serve as a way to quantify and add value to a home, by excluding this information the number of bathrooms become more essential to our model. Normally the more bathrooms there are the nicer and therefore more expensive the home is. Bedrooms serve as a better predictor which is why when they were included in our model the bathroom variable was not significant, however, without it the bathrooms variable becomes more valuable in explaining the variation in price and therefore statistically significant. 
+    
+vi) Make a lattice plot of log(price) against bathrooms, controlling for the number of bedrooms and write a sentence or two interpreting the plot. What does this plot tell us about the need for including both bed and bath in the same model? (Hint: See below)
+
+```{r}
+library(lattice)
+xyplot(lprice~bath| bed, realty.new)
+```
+
+Looking at the lattice plot, we are trying to see if there is any variability in bath while controlling for the number of beds. Since all of the plots follow a vertical line pattern we can conclude that there isn't much variability and so the two variables (bed and bath) must explain a similar amount of the variation. Therefore, we do not need to include both in our model. 
+
+vii) The model we've fit so far assumes that the relation between log(price) and size (measured by sqft) is the same in each city. Does this seem like a valid assumption? To check make and interpret the lattice plot:
+
+```{r}
+library(lattice)
+xyplot(lprice~sqft| city, realty.new)
+```
+
+No, this is not a valid assumption since by looking at the plots we see that the variability is different for the different cities. Beverly Hills has a much more spread out scattered plot showing more variation than when compared to Westwood. While Santa Monica and Long Beach have similar looking plots, we cannot assume that all four cities have the same relation between log(price) and size.  
+    
+    
+    
+    
+    
+    
